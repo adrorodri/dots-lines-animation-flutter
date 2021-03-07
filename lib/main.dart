@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:trotter/trotter.dart';
 
 import 'dot.dart';
 
@@ -41,7 +42,7 @@ class _DotsState extends State<Dots> {
 
   List<Dot> dots = List.generate(50, (_) => Dot.random(size));
 
-  double speed = 1;
+  double speed = 1.5;
 
   double distanceModifier = 100;
 
@@ -90,34 +91,33 @@ class DotsPainter extends CustomPainter {
     var maxDistance = distanceModifier * 1.5;
 
     // Draw lines
-    this.dots.forEach((dot1) {
-      this.dots.forEach((dot2) {
-        var distance = (dot1.position - dot2.position).distance;
-        if (distance < maxDistance) {
-          canvas.drawLine(
-              dot1.position,
-              dot2.position,
-              linesFill
-                ..color = Colors.white
-                    .withAlpha(255 - distance * 255 ~/ maxDistance));
-        }
-      });
+    var combinations = Combinations(2, dots);
 
+    combinations().forEach((dotsPair) {
+      var dot1 = dotsPair[0];
+      var dot2 = dotsPair[1];
+      var distance = (dot1.position - dot2.position).distance;
+      if (distance < maxDistance) {
+        canvas.drawLine(
+            dot1.position,
+            dot2.position,
+            linesFill
+              ..color = Colors.white
+                  .withAlpha(255 - distance * 255 ~/ maxDistance));
+      }
+    });
+    this.dots.forEach((dot) {
       if (mousePosition != null) {
-        var distanceToMouse = (dot1.position - mousePosition).distance;
+        var distanceToMouse = (dot.position - mousePosition).distance;
         if (distanceToMouse < maxDistance) {
           canvas.drawLine(
-              dot1.position,
+              dot.position,
               mousePosition,
               linesFill
                 ..color = Colors.white
                     .withAlpha(255 - distanceToMouse * 255 ~/ maxDistance));
         }
       }
-    });
-
-    // Draw dots
-    this.dots.forEach((dot) {
       canvas.drawCircle(dot.position, 2, dotsFill);
     });
   }
