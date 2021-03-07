@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import 'dot.dart';
 
@@ -24,56 +25,103 @@ class AnimationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(onTap: () {}, child: Board());
+    return new Dots();
   }
-}
-
-class Board extends StatefulWidget {
-  @override
-  _BoardState createState() => _BoardState();
 }
 
 final size = window.physicalSize / window.devicePixelRatio;
 
-class _BoardState extends State<Board> {
-  Offset mouse = Offset.zero;
-  List<Dot> dots = List.filled(200, Dot.random(size));
+class Dots extends StatefulWidget {
+  @override
+  _DotsState createState() => _DotsState();
+}
 
-  startAnimating() {
-    while (true) {
-      dots.forEach((dot) => dot.move());
-    }
-  }
+class _DotsState extends State<Dots> {
+  Offset mousePosition = Offset.zero;
 
-  _BoardState() {
-    startAnimating();
+  List<Dot> dots = List.generate(50, (_) => Dot.random(size));
+
+  double speed = 1;
+
+  double distanceModifier = 100;
+
+  int lastTimestamp = 0;
+
+  tickAnimation() {
+    setState(() => dots.forEach((dot) => dot.move(speed, size)));
   }
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-        onPanUpdate: (details) => setState(() => mouse = details.localPosition),
-        child: CustomPaint(size: size, painter: Painter(mouse, dots)),
-      );
+  Widget build(BuildContext context) {
+    var ticker = Ticker((elapsed) {
+      if (elapsed.inMilliseconds > lastTimestamp + 10) {
+        lastTimestamp = elapsed.inMilliseconds;
+        tickAnimation();
+      }
+    });
+    ticker.start();
+    return GestureDetector(
+      onPanUpdate: (details) => setState(() => mousePosition = details.localPosition),
+      onPanEnd: (details) => setState(() => mousePosition = null),
+      child: CustomPaint(
+          size: size,
+          painter: DotsPainter(mousePosition, dots, speed, distanceModifier)),
+    );
+  }
 }
 
-class Painter extends CustomPainter {
-  static const radius = 10.0;
+class DotsPainter extends CustomPainter {
+  static final dotsFill = Paint()..color = Colors.white;
 
-  static final fill = Paint()..color = Colors.red;
+  static final linesFill = Paint()
+    ..color = Colors.white
+    ..strokeWidth = 0.5;
 
-  final Offset position;
+  final Offset mousePosition;
   final List<Dot> dots;
+  final double speed;
+  final double distanceModifier;
 
-  const Painter(this.position, this.dots);
+  const DotsPainter(
+      this.mousePosition, this.dots, this.speed, this.distanceModifier);
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawCircle(position, radius, fill);
+    var maxDistance = distanceModifier * 1.5;
+
+    // Draw lines
+    this.dots.forEach((dot1) {
+      this.dots.forEach((dot2) {
+        var distance = (dot1.position - dot2.position).distance;
+        if (distance < maxDistance) {
+          canvas.drawLine(
+              dot1.position,
+              dot2.position,
+              linesFill
+                ..color = Colors.white
+                    .withAlpha(255 - distance * 255 ~/ maxDistance));
+        }
+      });
+
+      if (mousePosition != null) {
+        var distanceToMouse = (dot1.position - mousePosition).distance;
+        if (distanceToMouse < maxDistance) {
+          canvas.drawLine(
+              dot1.position,
+              mousePosition,
+              linesFill
+                ..color = Colors.white
+                    .withAlpha(255 - distanceToMouse * 255 ~/ maxDistance));
+        }
+      }
+    });
+
+    // Draw dots
     this.dots.forEach((dot) {
-      canvas.drawCircle(dot.position, 1, fill);
+      canvas.drawCircle(dot.position, 2, dotsFill);
     });
   }
 
   @override
-  bool shouldRepaint(Painter oldDelegate) => position != oldDelegate.position;
+  bool shouldRepaint(DotsPainter oldDelegate) => true;
 }

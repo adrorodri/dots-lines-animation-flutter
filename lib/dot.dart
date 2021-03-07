@@ -11,14 +11,28 @@ class Dot {
     this.vector = Vector.random();
   }
 
-  move() {
-    position = position.translate(cos(radians(vector.angleDegrees)) * vector.magnitude,
-        sin(radians(vector.angleDegrees)) * vector.magnitude);
+  move(double speed, Size bounds) {
+    position = position.translate(
+        speed * vector.magnitudex, speed * vector.magnitudey);
+    if (position.dx > bounds.width) {
+      position = position.translate(-bounds.width, 0);
+    }
+    if (position.dx < 0) {
+      position = position.translate(bounds.width, 0);
+    }
+    if (position.dy > bounds.height) {
+      position = position.translate(0, -bounds.height);
+    }
+    if (position.dy < 0) {
+      position = position.translate(0, bounds.height);
+    }
   }
 
   static Dot random(Size size) {
-    double randomX = Random().nextDouble() * size.width;
-    double randomY = Random().nextDouble() * size.height;
+    double randomX =
+        Random(DateTime.now().microsecond).nextDouble() * size.width;
+    double randomY =
+        Random(DateTime.now().microsecond).nextDouble() * size.height;
     Offset position = new Offset(randomX, randomY);
     return new Dot(position);
   }
@@ -27,12 +41,17 @@ class Dot {
 class Vector {
   double magnitude;
   double angleDegrees;
+  double magnitudex;
+  double magnitudey;
 
-  Vector(this.magnitude, this.angleDegrees);
+  Vector(this.magnitude, this.angleDegrees) {
+    magnitudex = magnitude * cos(radians(angleDegrees));
+    magnitudey = magnitude * sin(radians(angleDegrees));
+  }
 
   static Vector random() {
-    double magnitude = Random().nextDouble() + 20;
-    double angleDegrees = Random().nextDouble() * 360;
+    double magnitude = Random(DateTime.now().microsecond).nextDouble();
+    double angleDegrees = Random(DateTime.now().microsecond).nextDouble() * 360;
     return new Vector(magnitude, angleDegrees);
   }
 }
